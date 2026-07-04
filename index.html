@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이미지 메타데이터 세탁소</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafafa;
+    --card:#ffffff;
+    --ink:#1c1c1e;
+    --sub:#767676;
+    --line:#e5e5e5;
+    --accent:#1c1c1e;
+    --ok:#2f8f5b;
+    --danger:#c2483f;
+    --body: -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    color:var(--ink);
+    font-family:var(--body);
+    background:var(--bg);
+    display:flex;
+    justify-content:center;
+    padding:64px 20px;
+  }
+  .wrap{width:100%;max-width:640px;}
+
+  header{
+    margin-bottom:28px;
+  }
+  .eyebrow{
+    display:inline-block;
+    font-weight:600;
+    font-size:11.5px;
+    letter-spacing:.04em;
+    color:var(--sub);
+    margin-bottom:10px;
+  }
+  h1{
+    font-size:24px;
+    line-height:1.3;
+    margin:0 0 8px;
+    font-weight:700;
+    color:var(--ink);
+    letter-spacing:-.01em;
+  }
+  p.lede{
+    font-size:14px;
+    color:var(--sub);
+    line-height:1.6;
+    margin:0;
+    max-width:56ch;
+  }
+
+  .dropzone{
+    margin-top:24px;
+    border:1px dashed var(--line);
+    border-radius:12px;
+    padding:40px 24px;
+    text-align:center;
+    cursor:pointer;
+    background:var(--card);
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .dropzone:hover{ border-color:#c7c7c7; }
+  .dropzone.drag{
+    border-color:var(--ink);
+    background:#f5f5f5;
+  }
+  .dropzone .glyph{
+    font-size:24px;
+    display:block;
+    margin-bottom:10px;
+  }
+  .dropzone strong{font-weight:600; color:var(--ink); font-size:14px;}
+  .dropzone span.sub{
+    display:block;
+    font-weight:500;
+    font-size:12px;
+    color:var(--sub);
+    margin-top:6px;
+  }
+  input[type=file]{display:none;}
+
+  .options{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:16px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    font-weight:500;
+    font-size:12.5px;
+    color:var(--sub);
+    line-height:1.5;
+  }
+  .options input{accent-color:var(--ink); width:15px; height:15px; flex-shrink:0;}
+
+  .list{margin-top:20px;display:flex;flex-direction:column;gap:8px;}
+  .row{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    display:grid;
+    grid-template-columns:40px 1fr auto auto;
+    align-items:center;
+    gap:12px;
+    padding:10px 12px;
+  }
+  .thumb{width:40px;height:40px;object-fit:cover;border-radius:6px;background:#f0f0f0;}
+  .meta .name{font-size:13px;font-weight:600;color:var(--ink);}
+  .meta .status{font-weight:500;font-size:11.5px;color:var(--sub);margin-top:2px;}
+  .meta .status.ok{color:var(--ok);}
+  .meta .status.err{color:var(--danger);}
+  .size{font-weight:500;font-size:11.5px;color:var(--sub);text-align:right;white-space:nowrap;}
+  a.dl{
+    font-weight:600;
+    font-size:11.5px;
+    text-decoration:none;
+    color:#fff;
+    background:var(--accent);
+    padding:7px 13px;
+    border-radius:8px;
+    white-space:nowrap;
+  }
+  a.dl:hover{background:#000;}
+  a.dl.disabled{
+    color:#b0b0b0;background:#eee;pointer-events:none;
+  }
+
+  .footerbar{
+    margin-top:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  button.zip{
+    font-family:var(--body);
+    font-weight:600;
+    font-size:12.5px;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    padding:10px 18px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  button.zip.ghost{
+    background:transparent;
+    color:var(--sub);
+    border:1px solid var(--line);
+  }
+  button.zip:disabled{background:#eee;color:#b0b0b0;cursor:not-allowed;}
+  .note{
+    font-weight:500;
+    font-size:11.5px;
+    color:var(--sub);
+    line-height:1.6;
+  }
+  footer{
+    margin-top:32px;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+    font-weight:500;
+    font-size:11.5px;
+    color:var(--sub);
+    line-height:1.7;
+  }
+
+  @media (max-width: 480px){
+    h1{font-size:21px;}
+    .row{grid-template-columns:34px 1fr; row-gap:8px;}
+    .row .size{order:3; text-align:left;}
+    .row a.dl{order:4; justify-self:start;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">로컬 처리 · 서버 전송 없음</div>
+    <h1>이미지 메타데이터 지우기</h1>
+    <p class="lede">EXIF, PNG 텍스트 청크(프롬프트·시드 등), 스텔스 알파채널 정보를 제거한 사본을 만듭니다.
+    파일은 브라우저 안에서만 처리되고 어디로도 전송되지 않습니다.</p>
+  </header>
+
+  <div class="dropzone" id="dropzone">
+    <span class="glyph">＋</span>
+    <strong>이미지를 끌어다 놓거나 눌러서 선택하세요</strong>
+    <span class="sub">PNG · JPG · WEBP · 여러 장 한꺼번에 가능</span>
+    <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp" multiple>
+  </div>
+
+  <label class="options">
+    <input type="checkbox" id="deepClean" checked>
+    스텔스 메타데이터까지 제거 (알파채널 초기화 — 프롬프트가 여기 숨겨지는 경우가 많아 기본으로 켜두는 걸 권장합니다. 반투명 이미지는 결과가 살짝 달라질 수 있어요)
+  </label>
+
+  <div class="list" id="list" style="display:none;"></div>
+
+  <div class="footerbar" id="footerbar" style="display:none;">
+    <span class="note">완료된 파일만 압축에 담깁니다</span>
+    <div style="display:flex; gap:8px;">
+      <button class="zip ghost" id="resetBtn">목록 비우고 새로 시작</button>
+      <button class="zip" id="zipBtn" disabled>전체 다운로드 (.zip)</button>
+    </div>
+  </div>
+
+  <footer>
+    처리 방식 — 각 이미지를 캔버스에 다시 그려 순수 픽셀 데이터만 추출한 뒤
+    PNG/JPEG/WEBP로 재인코딩합니다. 이 과정에서 EXIF와 PNG 텍스트 청크는 자연스럽게 사라집니다.
+  </footer>
+</div>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const listEl = document.getElementById('list');
+const footerbar = document.getElementById('footerbar');
+const zipBtn = document.getElementById('zipBtn');
+const deepCleanBox = document.getElementById('deepClean');
+
+let processedFiles = []; // {name, blob}
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => {
+  handleFiles(e.target.files);
+  // 같은 파일을 다시 선택해도 change 이벤트가 발생하도록 값 초기화
+  fileInput.value = '';
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  listEl.innerHTML = '';
+  listEl.style.display = 'none';
+  footerbar.style.display = 'none';
+  processedFiles = [];
+  zipBtn.disabled = true;
+  zipBtn.textContent = '전체 다운로드 (.zip)';
+});
+
+function humanSize(bytes){
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(2) + ' MB';
+}
+
+function handleFiles(fileList){
+  const files = Array.from(fileList).filter(f => /\.(png|jpe?g|webp)$/i.test(f.name));
+  if(!files.length) return;
+  listEl.style.display = 'flex';
+  listEl.style.flexDirection = 'column';
+  footerbar.style.display = 'flex';
+
+  files.forEach(file => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const thumbUrl = URL.createObjectURL(file);
+    row.innerHTML = `
+      <img class="thumb" src="${thumbUrl}">
+      <div class="meta">
+        <div class="name">${file.name}</div>
+        <div class="status">처리 중…</div>
+      </div>
+      <div class="size">${humanSize(file.size)}</div>
+      <a class="dl disabled" href="#">다운로드</a>
+    `;
+    listEl.appendChild(row);
+    processFile(file, row);
+  });
+}
+
+async function processFile(file, row){
+  try{
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(bitmap, 0, 0);
+
+    if(deepCleanBox.checked){
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const d = imgData.data;
+      for(let i = 3; i < d.length; i += 4){
+        d[i] = d[i] >= 128 ? 255 : 0; // 알파 LSB 스텔스 정보 제거
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    const mime = file.type === 'image/jpeg' ? 'image/jpeg'
+               : file.type === 'image/webp' ? 'image/webp'
+               : 'image/png';
+    const quality = mime === 'image/png' ? undefined : 0.95;
+
+    const blob = await new Promise(res => canvas.toBlob(res, mime, quality));
+    if(!blob) throw new Error('인코딩 실패');
+
+    const cleanName = file.name.replace(/(\.[^.]+)$/, '_clean$1');
+    processedFiles.push({ name: cleanName, blob });
+
+    const url = URL.createObjectURL(blob);
+    const status = row.querySelector('.status');
+    status.textContent = `완료 · ${humanSize(blob.size)}`;
+    status.classList.add('ok');
+    const link = row.querySelector('.dl');
+    link.href = url;
+    link.download = cleanName;
+    link.classList.remove('disabled');
+
+    zipBtn.disabled = processedFiles.length === 0;
+  }catch(err){
+    const status = row.querySelector('.status');
+    status.textContent = '처리 실패: ' + err.message;
+    status.classList.add('err');
+  }
+}
+
+zipBtn.addEventListener('click', async () => {
+  if(!processedFiles.length) return;
+  zipBtn.disabled = true;
+  zipBtn.textContent = '압축 중…';
+  const zip = new JSZip();
+  processedFiles.forEach(f => zip.file(f.name, f.blob));
+  const content = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(content);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cleaned_images.zip';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  zipBtn.textContent = '전체 다운로드 (.zip)';
+  zipBtn.disabled = false;
+});
+</script>
+</body>
+</html>
