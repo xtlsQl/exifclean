@@ -202,11 +202,6 @@
     <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp" multiple>
   </div>
 
-  <label class="options">
-    <input type="checkbox" id="deepClean" checked>
-    스텔스 메타데이터까지 제거 (알파채널 초기화 — 프롬프트가 여기 숨겨지는 경우가 많아 기본으로 켜두는 걸 권장합니다. 반투명 이미지는 결과가 살짝 달라질 수 있어요)
-  </label>
-
   <div class="list" id="list" style="display:none;"></div>
 
   <div class="footerbar" id="footerbar" style="display:none;">
@@ -218,8 +213,8 @@
   </div>
 
   <footer>
-    처리 방식 — 각 이미지를 캔버스에 다시 그려 순수 픽셀 데이터만 추출한 뒤
-    PNG/JPEG/WEBP로 재인코딩합니다. 이 과정에서 EXIF와 PNG 텍스트 청크는 자연스럽게 사라집니다.
+    처리 방식 — 각 이미지를 캔버스에 다시 그려 순수 픽셀 데이터만 추출하고 알파채널을 초기화한 뒤
+    PNG/JPEG/WEBP로 재인코딩합니다. 이 과정에서 EXIF, PNG 텍스트 청크, 스텔스 정보가 모두 사라집니다.
   </footer>
 </div>
 
@@ -229,7 +224,6 @@ const fileInput = document.getElementById('fileInput');
 const listEl = document.getElementById('list');
 const footerbar = document.getElementById('footerbar');
 const zipBtn = document.getElementById('zipBtn');
-const deepCleanBox = document.getElementById('deepClean');
 
 let processedFiles = []; // {name, blob}
 
@@ -296,14 +290,12 @@ async function processFile(file, row){
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(bitmap, 0, 0);
 
-    if(deepCleanBox.checked){
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const d = imgData.data;
-      for(let i = 3; i < d.length; i += 4){
-        d[i] = d[i] >= 128 ? 255 : 0; // 알파 LSB 스텔스 정보 제거
-      }
-      ctx.putImageData(imgData, 0, 0);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imgData.data;
+    for(let i = 3; i < d.length; i += 4){
+      d[i] = d[i] >= 128 ? 255 : 0; // 알파 LSB 스텔스 정보 제거
     }
+    ctx.putImageData(imgData, 0, 0);
 
     const mime = file.type === 'image/jpeg' ? 'image/jpeg'
                : file.type === 'image/webp' ? 'image/webp'
